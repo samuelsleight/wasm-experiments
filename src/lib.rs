@@ -1,5 +1,6 @@
 mod utils;
 mod shaders;
+mod renderer;
 
 use wasm_bindgen::{
     JsCast,
@@ -26,35 +27,8 @@ pub fn start() -> Result<(), JsValue> {
         .dyn_into()
         .map_err(|_| "webgl context conversion failed")?;
 
-    let program = shaders::compile_and_link_program(&context)?;
-    context.use_program(Some(&program));
-
-    let vertices: [f32; 9] = [-0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0];
-
-    let buffer = context.create_buffer().ok_or("failed to create buffer")?;
-    context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
-
-    unsafe {
-        let vert_array = js_sys::Float32Array::view(&vertices);
-
-        context.buffer_data_with_array_buffer_view(
-            WebGlRenderingContext::ARRAY_BUFFER,
-            &vert_array,
-            WebGlRenderingContext::STATIC_DRAW,
-        );
-    }
-
-    context.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
-    context.enable_vertex_attrib_array(0);
-
-    context.clear_color(0.0, 0.0, 0.0, 1.0);
-    context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
-
-    context.draw_arrays(
-        WebGlRenderingContext::TRIANGLES,
-        0,
-        (vertices.len() / 3) as i32,
-    );
+    let renderer = renderer::Renderer::new(context)?;
+    renderer.render();
 
     Ok(())
 }
