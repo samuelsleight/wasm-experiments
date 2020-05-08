@@ -8,16 +8,6 @@
     <body>
         <canvas id="webgl"></canvas>
 
-        <script type="module">
-            import init, { start } from "./pkg/wasm_experiments.js";
-
-            async function run()
-            {
-                await init();
-                start();
-            }
-
-            run();
-        </script>
+        <script type="module" src="index.js"></script>
     </body>
 </html>
