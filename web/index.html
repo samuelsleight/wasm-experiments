@@ -4,16 +4,15 @@
     </head>
 
     <body>
-        <h1>Hello, World!</h1>
+        <canvas id="webgl"></canvas>
 
         <script type="module">
-            import init, { greet } from "./pkg/wasm_experiments.js";
+            import init, { start } from "./pkg/wasm_experiments.js";
 
             async function run()
             {
                 await init();
-
-                greet();
+                start();
             }
 
             run();
