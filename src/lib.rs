@@ -14,7 +14,7 @@ use wasm_bindgen::{
 
 use web_sys::{
     HtmlCanvasElement,
-    WebGlRenderingContext
+    WebGl2RenderingContext
 };
 
 fn window() -> Result<web_sys::Window, String> {
@@ -36,8 +36,8 @@ pub fn start() -> Result<(), JsValue> {
     let canvas = document.get_element_by_id("webgl").ok_or("Canvas does not exist")?;
     let canvas: HtmlCanvasElement = canvas.dyn_into().map_err(|_| "Canvas was not canvas")?;
 
-    let context: WebGlRenderingContext = canvas
-        .get_context("webgl")
+    let context: WebGl2RenderingContext = canvas
+        .get_context("webgl2")
         .map_err(|_| "Get context failed")?
         .ok_or("webgl context not supported")?
         .dyn_into()
