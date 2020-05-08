@@ -29,6 +29,10 @@ impl Renderer {
         })
     }
 
+    pub fn resize_viewport(&self, width: u32, height: u32) {
+        self.context.viewport(0, 0, width as i32, height as i32);
+    }
+
     pub fn render(&self, time: f32) {
         self.context.use_program(Some(&self.program));
 
