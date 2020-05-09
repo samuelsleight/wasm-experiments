@@ -11,6 +11,7 @@ pub struct Renderer {
 
     time_location: WebGlUniformLocation,
     scene_dimensions_location: WebGlUniformLocation,
+    scene_offset_location: WebGlUniformLocation,
 
     vertices: [f32; 6],
 }
@@ -24,12 +25,14 @@ impl Renderer {
 
         let time_location = context.get_uniform_location(&program, "time").ok_or("unable to find time uniform")?;
         let scene_dimensions_location = context.get_uniform_location(&program, "scene_dimensions").ok_or("unable to find scene dimensions uniform")?;
+        let scene_offset_location = context.get_uniform_location(&program, "scene_offset").ok_or("unable to find scene offset uniform")?;
 
         Ok(Renderer {
             context,
             program,
             time_location,
             scene_dimensions_location,
+            scene_offset_location,
             vertices,
         })
     }
@@ -42,7 +45,7 @@ impl Renderer {
         self.context.use_program(None);
     }
 
-    pub fn render(&self, time: f32) {
+    pub fn render(&self, time: f32, offset: (i32, i32)) {
         self.context.use_program(Some(&self.program));
 
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
@@ -51,6 +54,7 @@ impl Renderer {
         self.context.enable_vertex_attrib_array(0);
 
         self.context.uniform1f(Some(&self.time_location), (time as i32 % 1000) as f32);
+        self.context.uniform2f(Some(&self.scene_offset_location), offset.0 as f32, offset.1 as f32);
 
         self.context.draw_arrays(
             WebGl2RenderingContext::TRIANGLES,
