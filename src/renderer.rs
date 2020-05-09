@@ -1,27 +1,90 @@
 use web_sys::{
     WebGl2RenderingContext,
+    WebGlBuffer,
     WebGlProgram,
     WebGlUniformLocation
 };
+
+#[derive(Copy, Clone)]
+struct Vertex {
+    pub x: f32,
+    pub y: f32
+}
+
+impl Vertex {
+    pub fn new(x: f32, y: f32) -> Vertex {
+        Vertex {
+            x, y
+        }
+    }
+}
+
+struct Mesh {
+    vertices: Vec<Vertex>,
+    buffer: WebGlBuffer
+}
+
+impl Mesh {
+    pub fn new<T: Into<Vec<Vertex>>>(context: &WebGl2RenderingContext, t: T) -> Result<Mesh, String> {
+        let vertices = t.into();
+        let buffer_data = vertices.iter().flat_map(|vertex| vec![vertex.x, vertex.y]).collect::<Vec<f32>>();
+
+        let buffer = context.create_buffer().ok_or("failed to create buffer")?;
+        context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
+
+        unsafe {
+            let array_view = js_sys::Float32Array::view(buffer_data.as_slice());
+
+            context.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                &array_view,
+                WebGl2RenderingContext::STATIC_DRAW,
+            );
+        }
+
+        context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
+
+        Ok(Mesh {
+            vertices,
+            buffer
+        })
+    }
+
+    pub fn render(&self, context: &WebGl2RenderingContext, attrib: i32) {
+        context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.buffer));
+        context.vertex_attrib_pointer_with_i32(attrib as u32, 2, WebGl2RenderingContext::FLOAT, false, 0, 0);
+
+        context.draw_arrays(
+            WebGl2RenderingContext::TRIANGLES,
+            0,
+            self.vertices.len() as i32);
+    }
+}
 
 pub struct Renderer {
     context: WebGl2RenderingContext,
 
     program: WebGlProgram,
 
+    position_location: i32,
+
     time_location: WebGlUniformLocation,
     scene_dimensions_location: WebGlUniformLocation,
     scene_offset_location: WebGlUniformLocation,
 
-    vertices: [f32; 6],
+    meshes: Vec<Mesh>
 }
 
 impl Renderer {
     pub fn new(context: WebGl2RenderingContext) -> Result<Renderer, String> {
         let program = crate::shaders::compile_and_link_program(&context)?;
 
-        let vertices: [f32; 6] = [250.0, 300.0, 450.0, 600.0, 700.0, 250.0];
-        create_buffer(&context, &vertices)?;
+        let position_location = context.get_attrib_location(&program, "scene_position");
+
+        let meshes = vec![
+            Mesh::new(&context, [Vertex::new(250.0, 300.0), Vertex::new(450.0, 600.0), Vertex::new(700.0, 250.0)])?,
+            Mesh::new(&context, [Vertex::new(550.0, 500.0), Vertex::new(800.0, 750.0), Vertex::new(950.0, 150.0)])?
+        ];
 
         let time_location = context.get_uniform_location(&program, "time").ok_or("unable to find time uniform")?;
         let scene_dimensions_location = context.get_uniform_location(&program, "scene_dimensions").ok_or("unable to find scene dimensions uniform")?;
@@ -30,10 +93,11 @@ impl Renderer {
         Ok(Renderer {
             context,
             program,
+            position_location,
             time_location,
             scene_dimensions_location,
             scene_offset_location,
-            vertices,
+            meshes,
         })
     }
 
@@ -48,41 +112,20 @@ impl Renderer {
     pub fn render(&self, time: f32, offset: (i32, i32)) {
         self.context.use_program(Some(&self.program));
 
-        self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-        self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
-        self.context.enable_vertex_attrib_array(0);
+        self.context.enable_vertex_attrib_array(self.position_location as u32);
 
         self.context.uniform1f(Some(&self.time_location), (time as i32 % 1000) as f32);
         self.context.uniform2f(Some(&self.scene_offset_location), offset.0 as f32, offset.1 as f32);
 
-        self.context.draw_arrays(
-            WebGl2RenderingContext::TRIANGLES,
-            0,
-            (self.vertices.len() / 2) as i32,
-        );
+        self.context.clear_color(0.0, 0.0, 0.0, 1.0);
+        self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.context.disable_vertex_attrib_array(0);
+        for mesh in &self.meshes {
+            mesh.render(&self.context, self.position_location)
+        }
+
+        self.context.disable_vertex_attrib_array(self.position_location as u32);
+
         self.context.use_program(None);
     }
-}
-
-fn create_buffer(context: &WebGl2RenderingContext, vertices: &[f32]) -> Result<(), String> {
-    let buffer = context.create_buffer().ok_or("failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
-
-    unsafe {
-        let array_view = js_sys::Float32Array::view(&vertices);
-
-        context.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            &array_view,
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
-    }
-
-    context.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 0, 0);
-
-    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
-    Ok(())
 }
