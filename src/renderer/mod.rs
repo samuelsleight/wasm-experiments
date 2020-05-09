@@ -1,16 +1,21 @@
 mod mesh;
 mod vertex;
 mod shaders;
+mod uniform;
 
 use self::{
     mesh::Mesh,
-    vertex::Vertex
+    vertex::Vertex,
+    uniform::{
+        Uniform,
+        GlobalUniforms,
+        FrameUniforms
+    }
 };
 
 use web_sys::{
     WebGl2RenderingContext,
     WebGlProgram,
-    WebGlUniformLocation
 };
 
 pub struct Renderer {
@@ -20,9 +25,8 @@ pub struct Renderer {
 
     position_location: i32,
 
-    time_location: WebGlUniformLocation,
-    scene_dimensions_location: WebGlUniformLocation,
-    scene_offset_location: WebGlUniformLocation,
+    global_uniforms: Uniform<GlobalUniforms>,
+    frame_uniforms: Uniform<FrameUniforms>,
 
     meshes: Vec<Mesh>
 }
@@ -38,27 +42,38 @@ impl Renderer {
             Mesh::new(&context, [Vertex::new(550.0, 500.0), Vertex::new(800.0, 750.0), Vertex::new(950.0, 150.0)])?
         ];
 
-        let time_location = context.get_uniform_location(&program, "time").ok_or("unable to find time uniform")?;
-        let scene_dimensions_location = context.get_uniform_location(&program, "scene_dimensions").ok_or("unable to find scene dimensions uniform")?;
-        let scene_offset_location = context.get_uniform_location(&program, "scene_offset").ok_or("unable to find scene offset uniform")?;
+        let global_uniforms = Uniform::new(
+            &context,
+            &program,
+            &GlobalUniforms {
+                dimensions: Vertex::new(0.0, 0.0)
+            })?;
+
+        let frame_uniforms = Uniform::new(
+            &context,
+            &program,
+            &FrameUniforms {
+                offset: Vertex::new(0.0, 0.0),
+                time: 0.0
+            })?;
 
         Ok(Renderer {
             context,
             program,
             position_location,
-            time_location,
-            scene_dimensions_location,
-            scene_offset_location,
+            global_uniforms,
+            frame_uniforms,
             meshes,
         })
     }
 
     pub fn resize_viewport(&self, width: u32, height: u32) {
         self.context.viewport(0, 0, width as i32, height as i32);
-
-        self.context.use_program(Some(&self.program));
-        self.context.uniform2f(Some(&self.scene_dimensions_location), width as f32, height as f32);
-        self.context.use_program(None);
+        self.global_uniforms.update(
+            &self.context,
+            &GlobalUniforms {
+                dimensions: Vertex::new(width as f32, height as f32)
+            });
     }
 
     pub fn render(&self, time: f32, offset: (i32, i32)) {
@@ -66,8 +81,15 @@ impl Renderer {
 
         self.context.enable_vertex_attrib_array(self.position_location as u32);
 
-        self.context.uniform1f(Some(&self.time_location), (time as i32 % 1000) as f32);
-        self.context.uniform2f(Some(&self.scene_offset_location), offset.0 as f32, offset.1 as f32);
+        self.frame_uniforms.update(
+            &self.context,
+            &FrameUniforms {
+                offset: Vertex::new(offset.0 as f32, offset.1 as f32),
+                time: (time as i32 % 1000) as f32
+            });
+
+        self.global_uniforms.bind_base(&self.context);
+        self.frame_uniforms.bind_base(&self.context);
 
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);

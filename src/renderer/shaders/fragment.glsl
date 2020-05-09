@@ -1,7 +1,11 @@
 #version 300 es
 
 precision mediump float;
-uniform float time;
+
+layout(std140) uniform frame_uniforms {
+    vec2 scene_offset;
+    float time;
+};
 
 out vec4 colour;
 
