@@ -13,7 +13,7 @@ async function run() {
         const canvas = document.getElementById("webgl");
         canvas.width = innerWidth;
         canvas.height = innerHeight;
-        console.log(context);
+        console.log("Resizing to " + innerWidth + ", " + innerHeight);
         context.resize_viewport(innerWidth, innerHeight);
     }
 
