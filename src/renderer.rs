@@ -6,6 +6,7 @@ use web_sys::{
 };
 
 #[derive(Copy, Clone)]
+#[repr(C)]
 struct Vertex {
     pub x: f32,
     pub y: f32
@@ -26,14 +27,17 @@ struct Mesh {
 
 impl Mesh {
     pub fn new<T: Into<Vec<Vertex>>>(context: &WebGl2RenderingContext, t: T) -> Result<Mesh, String> {
-        let vertices = t.into();
-        let buffer_data = vertices.iter().flat_map(|vertex| vec![vertex.x, vertex.y]).collect::<Vec<f32>>();
-
         let buffer = context.create_buffer().ok_or("failed to create buffer")?;
         context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
 
+        let vertices = t.into();
+
         unsafe {
-            let array_view = js_sys::Float32Array::view(buffer_data.as_slice());
+            // Get a &[f32] from the Vec<Vertex>, as Vertex is simply a pair of f32s
+            let f32_slice = std::slice::from_raw_parts(&vertices[0].x, vertices.len() * 2);
+
+            // Construct a Float32Array view over the slice - we need to ensure no other allocations are made while we hold this
+            let array_view = js_sys::Float32Array::view(f32_slice);
 
             context.buffer_data_with_array_buffer_view(
                 WebGl2RenderingContext::ARRAY_BUFFER,
