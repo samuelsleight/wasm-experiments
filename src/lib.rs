@@ -1,5 +1,4 @@
 mod utils;
-mod shaders;
 mod renderer;
 mod context;
 
