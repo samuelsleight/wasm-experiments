@@ -2,6 +2,8 @@ use crate::dom;
 
 use super::{
     program::ProgramBuilder,
+    mesh::Mesh,
+    vertex::Vertex,
     error::{
         Error,
         Result
@@ -30,6 +32,10 @@ impl WebGlContext {
 
     pub fn build_program(&self) -> Result<ProgramBuilder<()>> {
         ProgramBuilder::new(self.context.clone())
+    }
+
+    pub fn build_mesh<T: Into<Vec<Vertex>>>(&self, data: T) -> Result<Mesh> {
+        Mesh::new(self.context.clone(), data)
     }
 
     // Temporary - until all functionality is implemented

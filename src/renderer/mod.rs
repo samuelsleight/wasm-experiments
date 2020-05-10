@@ -1,11 +1,6 @@
-mod mesh;
-mod vertex;
 mod uniform;
-mod buffer;
 
 use self::{
-    mesh::Mesh,
-    vertex::Vertex,
     uniform::{
         Uniform,
         GlobalUniforms,
@@ -16,6 +11,8 @@ use self::{
 use crate::webgl::{
     WebGlContext,
     Attribute,
+    Mesh,
+    Vertex,
     Result
 };
 
@@ -47,13 +44,13 @@ impl Renderer {
 
         let position_attribute = program.attribute("scene_position")?;
 
+        let meshes = vec![
+            context.build_mesh([Vertex::new(250.0, 300.0), Vertex::new(450.0, 600.0), Vertex::new(700.0, 250.0)])?,
+            context.build_mesh([Vertex::new(550.0, 500.0), Vertex::new(800.0, 750.0), Vertex::new(950.0, 150.0)])?
+        ];
+
         let program = program.into_program();
         let context = context.into_context();
-
-        let meshes = vec![
-            Mesh::new(&context, [Vertex::new(250.0, 300.0), Vertex::new(450.0, 600.0), Vertex::new(700.0, 250.0)])?,
-            Mesh::new(&context, [Vertex::new(550.0, 500.0), Vertex::new(800.0, 750.0), Vertex::new(950.0, 150.0)])?
-        ];
 
         let global_uniforms = Uniform::new(
             &context,
@@ -83,7 +80,6 @@ impl Renderer {
     pub fn resize_viewport(&self, width: u32, height: u32) {
         self.context.viewport(0, 0, width as i32, height as i32);
         self.global_uniforms.update(
-            &self.context,
             &GlobalUniforms {
                 dimensions: Vertex::new(width as f32, height as f32)
             });
@@ -93,21 +89,20 @@ impl Renderer {
         self.context.use_program(Some(&self.program));
 
         self.frame_uniforms.update(
-            &self.context,
             &FrameUniforms {
                 offset: Vertex::new(offset.0 as f32, offset.1 as f32),
                 time: (time as i32 % 1000) as f32
             });
 
-        self.global_uniforms.bind_base(&self.context);
-        self.frame_uniforms.bind_base(&self.context);
+        self.global_uniforms.bind_base();
+        self.frame_uniforms.bind_base();
 
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         self.position_attribute.with(
             |attribute| for mesh in &self.meshes {
-                mesh.render(&self.context, &attribute);
+                mesh.render(&attribute);
             });
 
         self.context.use_program(None);

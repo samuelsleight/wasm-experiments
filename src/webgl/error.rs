@@ -23,6 +23,9 @@ pub enum Error {
     // Attribute Errors
     AttributeNotFound(String),
 
+    // Buffer Errors
+    BufferCreationFailure,
+
     // Temporary
     Other(String)
 }
@@ -45,6 +48,9 @@ impl Display for Error {
 
             // Attribute Errors
             Error::AttributeNotFound(ref s) => write!(f, "Unable to find attribute '{}' in shader program", s),
+
+            // Buffer Errors
+            Error::BufferCreationFailure => write!(f, "Failed to create buffer"),
 
             // Temporary
             Error::Other(ref s) => write!(f, "{}", s)

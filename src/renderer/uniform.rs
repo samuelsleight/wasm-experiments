@@ -1,9 +1,8 @@
-use super::{
-    vertex::Vertex,
-    buffer::{
-        Buffer,
-        BufferKind
-    }
+use crate::webgl::{
+    Vertex,
+    Buffer,
+    BufferKind,
+    Result
 };
 
 use std::marker::PhantomData;
@@ -61,11 +60,11 @@ pub struct Uniform<T: UniformRepr> {
 }
 
 impl<T: UniformRepr> Uniform<T> {
-    pub fn new(context: &WebGl2RenderingContext, program: &WebGlProgram, default: &T) -> Result<Uniform<T>, String> {
+    pub fn new(context: &WebGl2RenderingContext, program: &WebGlProgram, default: &T) -> Result<Uniform<T>> {
         let index = context.get_uniform_block_index(program, T::block_name());
 
         let buffer = Buffer::new_with_init(
-            context,
+            context.clone(),
             BufferKind::Uniform,
             default.as_slice(),
             |_| context.uniform_block_binding(program, index, index + 1))?;
@@ -78,13 +77,12 @@ impl<T: UniformRepr> Uniform<T> {
         })
     }
 
-    pub fn bind_base(&self, context: &WebGl2RenderingContext) {
-        self.buffer.bind_base(context, self.index + 1);
+    pub fn bind_base(&self) {
+        self.buffer.bind_base(self.index + 1);
     }
 
-    pub fn update(&self, context: &WebGl2RenderingContext, value: &T) {
+    pub fn update(&self, value: &T) {
         self.buffer.with_bound(
-            context,
-            |buffer| buffer.update(context, value.as_slice()));
+            |buffer| buffer.update(value.as_slice()));
     }
 }

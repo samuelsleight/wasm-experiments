@@ -1,12 +1,12 @@
 use super::{
+    attribute::ActiveAttribute,
     vertex::Vertex,
+    error::Result,
     buffer::{
         Buffer,
         BufferKind
-    }
+    },
 };
-
-use crate::webgl::ActiveAttribute;
 
 use web_sys::{
     WebGl2RenderingContext,
@@ -18,7 +18,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new<T: Into<Vec<Vertex>>>(context: &WebGl2RenderingContext, t: T) -> Result<Mesh, String> {
+    pub fn new<T: Into<Vec<Vertex>>>(context: WebGl2RenderingContext, t: T) -> Result<Mesh> {
         let vertices = t.into();
 
         let buffer = unsafe {
@@ -34,16 +34,11 @@ impl Mesh {
         })
     }
 
-    pub fn render(&self, context: &WebGl2RenderingContext, attribute: &ActiveAttribute<'_>) {
+    pub fn render(&self, attribute: &ActiveAttribute<'_>) {
         self.buffer.with_bound(
-            context,
-            |_| {
+            |buffer| {
                 attribute.vertex_attrib_pointer();
-
-                context.draw_arrays(
-                    WebGl2RenderingContext::TRIANGLES,
-                    0,
-                    self.vertices.len() as i32);
+                buffer.draw_arrays(self.vertices.len() as i32);
             });
     }
 }
