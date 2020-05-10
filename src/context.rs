@@ -35,10 +35,8 @@ impl Context {
     pub fn new() -> Result<Context, JsValue> {
         crate::utils::set_panic_hook();
 
-        let context = WebGlContext::from_canvas_with_id("webgl")?;
-
         Ok(Context{
-            renderer: Renderer::new(context.into_context())?,
+            renderer: Renderer::new(WebGlContext::from_canvas_with_id("webgl")?.into_context())?,
 
             last_time: 0.0,
 
