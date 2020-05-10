@@ -36,7 +36,7 @@ impl Context {
         crate::utils::set_panic_hook();
 
         Ok(Context{
-            renderer: Renderer::new(WebGlContext::from_canvas_with_id("webgl")?.into_context())?,
+            renderer: Renderer::new(WebGlContext::from_canvas_with_id("webgl")?)?,
 
             last_time: 0.0,
 

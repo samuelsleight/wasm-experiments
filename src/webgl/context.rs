@@ -1,8 +1,11 @@
 use crate::dom;
 
-use super::error::{
-    Error,
-    Result
+use super::{
+    program::ProgramBuilder,
+    error::{
+        Error,
+        Result
+    },
 };
 
 use wasm_bindgen::JsCast;
@@ -23,6 +26,10 @@ impl WebGlContext {
                 .dyn_into()
                 .map_err(|_| Error::ContextCastFailure)?
         })
+    }
+
+    pub fn build_program(&self) -> Result<ProgramBuilder<()>> {
+        ProgramBuilder::new(self.context.clone())
     }
 
     // Temporary - until all functionality is implemented

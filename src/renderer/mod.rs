@@ -1,6 +1,5 @@
 mod mesh;
 mod vertex;
-mod shaders;
 mod uniform;
 mod buffer;
 
@@ -12,6 +11,11 @@ use self::{
         GlobalUniforms,
         FrameUniforms
     }
+};
+
+use crate::webgl::{
+    WebGlContext,
+    Result
 };
 
 use web_sys::{
@@ -33,8 +37,15 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(context: WebGl2RenderingContext) -> Result<Renderer, String> {
-        let program = shaders::compile_and_link_program(&context)?;
+    pub fn new(context: WebGlContext) -> Result<Renderer> {
+        let program = context
+            .build_program()?
+            .fragment_shader(include_str!("shaders/fragment.glsl"))?
+            .vertex_shader(include_str!("shaders/vertex.glsl"))?
+            .link()?;
+
+        let program = program.into_program();
+        let context = context.into_context();
 
         let position_location = context.get_attrib_location(&program, "scene_position");
 
