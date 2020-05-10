@@ -1,4 +1,7 @@
-use crate::renderer::Renderer;
+use crate::{
+    dom,
+    renderer::Renderer
+};
 
 use enumset::{
     EnumSet,
@@ -40,7 +43,7 @@ impl Context {
     pub fn new() -> Result<Context, JsValue> {
         crate::utils::set_panic_hook();
 
-        let canvas: HtmlCanvasElement = canvas()?;
+        let canvas: HtmlCanvasElement = dom::canvas("webgl")?;
 
         let context: WebGl2RenderingContext = canvas
             .get_context("webgl2")
@@ -99,19 +102,4 @@ impl Context {
     }
 }
 
-fn window() -> Result<web_sys::Window, String> {
-    web_sys::window().ok_or("no global `window` exists".to_string())
-}
-
-fn document() -> Result<web_sys::Document, String> {
-    window()?.document().ok_or("Window does not contain document".to_string())
-}
-
-fn canvas() -> Result<HtmlCanvasElement, String> {
-    document()?
-        .get_element_by_id("webgl")
-        .ok_or("Canvas element does not exist".to_string())?
-        .dyn_into()
-        .map_err(|_| "Canvas element was not a canvas".into())
-}
 
