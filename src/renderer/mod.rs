@@ -13,18 +13,18 @@ use crate::webgl::{
     Mesh,
     Vertex,
     Uniform,
+    Program,
     Result
 };
 
 use web_sys::{
     WebGl2RenderingContext,
-    WebGlProgram,
 };
 
 pub struct Renderer {
     context: WebGl2RenderingContext,
 
-    program: WebGlProgram,
+    program: Program,
 
     position_attribute: Attribute,
 
@@ -60,7 +60,6 @@ impl Renderer {
                 time: 0.0
             })?;
 
-        let program = program.into_program();
         let context = context.into_context();
 
         Ok(Renderer {
@@ -82,8 +81,6 @@ impl Renderer {
     }
 
     pub fn render(&self, time: f32, offset: (i32, i32)) {
-        self.context.use_program(Some(&self.program));
-
         self.frame_uniforms.update(
             &FrameUniforms {
                 offset: Vertex::new(offset.0 as f32, offset.1 as f32),
@@ -96,11 +93,14 @@ impl Renderer {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.position_attribute.with(
-            |attribute| for mesh in &self.meshes {
-                mesh.render(&attribute);
+        self.program.with(
+            || {
+                self.position_attribute.with(
+                    |attribute| {
+                        for mesh in &self.meshes {
+                            mesh.render(&attribute);
+                        }
+                    });
             });
-
-        self.context.use_program(None);
     }
 }

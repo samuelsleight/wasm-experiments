@@ -126,9 +126,11 @@ impl Program {
         Uniform::new(self.context.clone(), &self.program, default)
     }
 
-    // Temporary - until all functionality is implemented
-    pub fn into_program(self) -> WebGlProgram {
-        self.program
+    pub fn with<U, F: FnOnce() -> U>(&self, f: F) -> U {
+        self.context.use_program(Some(&self.program));
+        let result = f();
+        self.context.use_program(None);
+        result
     }
 }
 

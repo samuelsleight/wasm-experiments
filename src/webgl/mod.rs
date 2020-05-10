@@ -9,8 +9,8 @@ mod buffer;
 
 pub use error::{Error, Result};
 pub use context::WebGlContext;
-pub use program::ProgramBuilder;
-pub use attribute::{Attribute, ActiveAttribute};
+pub use program::{Program, ProgramBuilder};
+pub use attribute::Attribute;
 pub use mesh::Mesh;
 pub use vertex::Vertex;
 pub use uniform::{Uniform, UniformRepr};
