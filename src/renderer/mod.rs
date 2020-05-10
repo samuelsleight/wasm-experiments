@@ -17,12 +17,8 @@ use crate::webgl::{
     Result
 };
 
-use web_sys::{
-    WebGl2RenderingContext,
-};
-
 pub struct Renderer {
-    context: WebGl2RenderingContext,
+    context: WebGlContext,
 
     program: Program,
 
@@ -60,8 +56,6 @@ impl Renderer {
                 time: 0.0
             })?;
 
-        let context = context.into_context();
-
         Ok(Renderer {
             context,
             program,
@@ -90,8 +84,7 @@ impl Renderer {
         self.global_uniforms.bind_base();
         self.frame_uniforms.bind_base();
 
-        self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-        self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        self.context.clear_colour(0.0, 0.0, 0.0, 1.0);
 
         self.program.with(
             || {

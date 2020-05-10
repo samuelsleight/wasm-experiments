@@ -38,8 +38,12 @@ impl WebGlContext {
         Mesh::new(self.context.clone(), data)
     }
 
-    // Temporary - until all functionality is implemented
-    pub fn into_context(self) -> WebGl2RenderingContext {
-        self.context
+    pub fn viewport(&self, x: i32, y: i32, w: i32, h: i32) {
+        self.context.viewport(x, y, w, h);
+    }
+
+    pub fn clear_colour(&self, r: f32, g: f32, b: f32, a: f32) {
+        self.context.clear_color(r, g, b, a);
+        self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
     }
 }
