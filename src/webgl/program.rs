@@ -2,6 +2,10 @@ use std::marker::PhantomData;
 
 use super::{
     attribute::Attribute,
+    uniform::{
+        Uniform,
+        UniformRepr
+    },
     error::{
         Error,
         Result
@@ -116,6 +120,10 @@ impl<> ProgramBuilder<HasBothShaders> {
 impl Program {
     pub fn attribute(&self, name: &str) -> Result<Attribute> {
         Attribute::new(self.context.clone(), &self.program, name)
+    }
+
+    pub fn uniform<T: UniformRepr>(&self, default: &T) -> Result<Uniform<T>> {
+        Uniform::new(self.context.clone(), &self.program, default)
     }
 
     // Temporary - until all functionality is implemented

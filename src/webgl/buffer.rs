@@ -8,6 +8,7 @@ use super::{
 use web_sys::{
     WebGl2RenderingContext,
     WebGlBuffer,
+    WebGlProgram,
 };
 
 pub enum BufferKind {
@@ -83,6 +84,10 @@ impl<'a> BoundBuffer<'a> {
             WebGl2RenderingContext::TRIANGLES,
             0,
             vertices);
+    }
+
+    pub fn uniform_block_binding(&self, program: &WebGlProgram, index: u32, binding: u32) {
+        self.buffer.context.uniform_block_binding(program, index, binding);
     }
 }
 

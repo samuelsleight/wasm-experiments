@@ -1,8 +1,7 @@
-mod uniform;
+mod uniforms;
 
 use self::{
-    uniform::{
-        Uniform,
+    uniforms::{
         GlobalUniforms,
         FrameUniforms
     }
@@ -13,6 +12,7 @@ use crate::webgl::{
     Attribute,
     Mesh,
     Vertex,
+    Uniform,
     Result
 };
 
@@ -49,23 +49,19 @@ impl Renderer {
             context.build_mesh([Vertex::new(550.0, 500.0), Vertex::new(800.0, 750.0), Vertex::new(950.0, 150.0)])?
         ];
 
-        let program = program.into_program();
-        let context = context.into_context();
-
-        let global_uniforms = Uniform::new(
-            &context,
-            &program,
+        let global_uniforms = program.uniform(
             &GlobalUniforms {
                 dimensions: Vertex::new(0.0, 0.0)
             })?;
 
-        let frame_uniforms = Uniform::new(
-            &context,
-            &program,
+        let frame_uniforms = program.uniform(
             &FrameUniforms {
                 offset: Vertex::new(0.0, 0.0),
                 time: 0.0
             })?;
+
+        let program = program.into_program();
+        let context = context.into_context();
 
         Ok(Renderer {
             context,
