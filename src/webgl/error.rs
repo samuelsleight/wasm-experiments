@@ -20,6 +20,9 @@ pub enum Error {
     ShaderCompilationFailure(String),
     ProgramLinkFailure(String),
 
+    // Attribute Errors
+    AttributeNotFound(String),
+
     // Temporary
     Other(String)
 }
@@ -39,6 +42,9 @@ impl Display for Error {
             Error::ShaderCreationFailure => write!(f, "Failed to create shader object"),
             Error::ShaderCompilationFailure(ref s) => write!(f, "Failed to compile shader: {}", s),
             Error::ProgramLinkFailure(ref s) => write!(f, "Failed to link shader program: {}", s),
+
+            // Attribute Errors
+            Error::AttributeNotFound(ref s) => write!(f, "Unable to find attribute '{}' in shader program", s),
 
             // Temporary
             Error::Other(ref s) => write!(f, "{}", s)

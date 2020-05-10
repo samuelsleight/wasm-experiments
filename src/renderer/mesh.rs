@@ -6,6 +6,8 @@ use super::{
     }
 };
 
+use crate::webgl::ActiveAttribute;
+
 use web_sys::{
     WebGl2RenderingContext,
 };
@@ -32,11 +34,11 @@ impl Mesh {
         })
     }
 
-    pub fn render(&self, context: &WebGl2RenderingContext, attrib: i32) {
+    pub fn render(&self, context: &WebGl2RenderingContext, attribute: &ActiveAttribute<'_>) {
         self.buffer.with_bound(
             context,
             |_| {
-                context.vertex_attrib_pointer_with_i32(attrib as u32, 2, WebGl2RenderingContext::FLOAT, false, 0, 0);
+                attribute.vertex_attrib_pointer();
 
                 context.draw_arrays(
                     WebGl2RenderingContext::TRIANGLES,

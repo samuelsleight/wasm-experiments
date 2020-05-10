@@ -1,8 +1,11 @@
 use std::marker::PhantomData;
 
-use super::error::{
-    Error,
-    Result
+use super::{
+    attribute::Attribute,
+    error::{
+        Error,
+        Result
+    }
 };
 
 use web_sys::{
@@ -111,6 +114,10 @@ impl<> ProgramBuilder<HasBothShaders> {
 }
 
 impl Program {
+    pub fn attribute(&self, name: &str) -> Result<Attribute> {
+        Attribute::new(self.context.clone(), &self.program, name)
+    }
+
     // Temporary - until all functionality is implemented
     pub fn into_program(self) -> WebGlProgram {
         self.program

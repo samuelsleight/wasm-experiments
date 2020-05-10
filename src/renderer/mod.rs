@@ -15,6 +15,7 @@ use self::{
 
 use crate::webgl::{
     WebGlContext,
+    Attribute,
     Result
 };
 
@@ -28,7 +29,7 @@ pub struct Renderer {
 
     program: WebGlProgram,
 
-    position_location: i32,
+    position_attribute: Attribute,
 
     global_uniforms: Uniform<GlobalUniforms>,
     frame_uniforms: Uniform<FrameUniforms>,
@@ -44,10 +45,10 @@ impl Renderer {
             .vertex_shader(include_str!("shaders/vertex.glsl"))?
             .link()?;
 
+        let position_attribute = program.attribute("scene_position")?;
+
         let program = program.into_program();
         let context = context.into_context();
-
-        let position_location = context.get_attrib_location(&program, "scene_position");
 
         let meshes = vec![
             Mesh::new(&context, [Vertex::new(250.0, 300.0), Vertex::new(450.0, 600.0), Vertex::new(700.0, 250.0)])?,
@@ -72,7 +73,7 @@ impl Renderer {
         Ok(Renderer {
             context,
             program,
-            position_location,
+            position_attribute,
             global_uniforms,
             frame_uniforms,
             meshes,
@@ -104,13 +105,10 @@ impl Renderer {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.context.enable_vertex_attrib_array(self.position_location as u32);
-
-        for mesh in &self.meshes {
-            mesh.render(&self.context, self.position_location)
-        }
-
-        self.context.disable_vertex_attrib_array(self.position_location as u32);
+        self.position_attribute.with(
+            |attribute| for mesh in &self.meshes {
+                mesh.render(&self.context, &attribute);
+            });
 
         self.context.use_program(None);
     }
