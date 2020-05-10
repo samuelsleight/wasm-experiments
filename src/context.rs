@@ -1,5 +1,5 @@
 use crate::{
-    dom,
+    webgl::WebGlContext,
     renderer::Renderer
 };
 
@@ -8,15 +8,7 @@ use enumset::{
     EnumSetType
 };
 
-use wasm_bindgen::{
-    JsCast,
-    prelude::*
-};
-
-use web_sys::{
-    HtmlCanvasElement,
-    WebGl2RenderingContext
-};
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(EnumSetType)]
@@ -43,17 +35,10 @@ impl Context {
     pub fn new() -> Result<Context, JsValue> {
         crate::utils::set_panic_hook();
 
-        let canvas: HtmlCanvasElement = dom::canvas("webgl")?;
-
-        let context: WebGl2RenderingContext = canvas
-            .get_context("webgl2")
-            .map_err(|_| "Get context failed")?
-            .ok_or("webgl context not supported")?
-            .dyn_into()
-            .map_err(|_| "webgl context conversion failed")?;
+        let context = WebGlContext::from_canvas_with_id("webgl")?;
 
         Ok(Context{
-            renderer: Renderer::new(context)?,
+            renderer: Renderer::new(context.into_context())?,
 
             last_time: 0.0,
 
