@@ -1,11 +1,16 @@
-use super::vertex::Vertex;
+use super::{
+    vertex::Vertex,
+    buffer::{
+        Buffer,
+        BufferKind
+    }
+};
 
 use std::marker::PhantomData;
 
 use web_sys::{
     WebGl2RenderingContext,
-    WebGlProgram,
-    WebGlBuffer
+    WebGlProgram
 };
 
 pub trait UniformRepr {
@@ -49,7 +54,7 @@ impl UniformRepr for FrameUniforms {
 }
 
 pub struct Uniform<T: UniformRepr> {
-    buffer: WebGlBuffer,
+    buffer: Buffer,
     index: u32,
 
     _phantom: PhantomData<T>
@@ -57,14 +62,13 @@ pub struct Uniform<T: UniformRepr> {
 
 impl<T: UniformRepr> Uniform<T> {
     pub fn new(context: &WebGl2RenderingContext, program: &WebGlProgram, default: &T) -> Result<Uniform<T>, String> {
-        let buffer = context.create_buffer().ok_or("failed to create buffer")?;
-        context.bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, Some(&buffer));
-
         let index = context.get_uniform_block_index(program, T::block_name());
-        context.uniform_block_binding(program, index, index + 1);
 
-        Self::update_bound(&context, default);
-        context.bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, None);
+        let buffer = Buffer::new_with_init(
+            context,
+            BufferKind::Uniform,
+            default.as_slice(),
+            |_| context.uniform_block_binding(program, index, index + 1))?;
 
         Ok(Uniform {
             buffer,
@@ -75,27 +79,12 @@ impl<T: UniformRepr> Uniform<T> {
     }
 
     pub fn bind_base(&self, context: &WebGl2RenderingContext) {
-        context.bind_buffer_base(WebGl2RenderingContext::UNIFORM_BUFFER, self.index + 1, Some(&self.buffer));
+        self.buffer.bind_base(context, self.index + 1);
     }
 
     pub fn update(&self, context: &WebGl2RenderingContext, value: &T) {
-        context.bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, Some(&self.buffer));
-        Self::update_bound(context, value);
-        context.bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, None);
-    }
-
-    fn update_bound(context: &WebGl2RenderingContext, value: &T) {
-        unsafe {
-            let f32_slice = value.as_slice();
-
-            // Construct a Float32Array view over the slice - we need to ensure no other allocations are made while we hold this
-            let array_view = js_sys::Float32Array::view(f32_slice);
-
-            context.buffer_data_with_array_buffer_view(
-                WebGl2RenderingContext::UNIFORM_BUFFER,
-                &array_view,
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-            );
-        }
+        self.buffer.with_bound(
+            context,
+            |buffer| buffer.update(context, value.as_slice()));
     }
 }

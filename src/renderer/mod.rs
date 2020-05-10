@@ -2,6 +2,7 @@ mod mesh;
 mod vertex;
 mod shaders;
 mod uniform;
+mod buffer;
 
 use self::{
     mesh::Mesh,
@@ -79,8 +80,6 @@ impl Renderer {
     pub fn render(&self, time: f32, offset: (i32, i32)) {
         self.context.use_program(Some(&self.program));
 
-        self.context.enable_vertex_attrib_array(self.position_location as u32);
-
         self.frame_uniforms.update(
             &self.context,
             &FrameUniforms {
@@ -93,6 +92,8 @@ impl Renderer {
 
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+        self.context.enable_vertex_attrib_array(self.position_location as u32);
 
         for mesh in &self.meshes {
             mesh.render(&self.context, self.position_location)
