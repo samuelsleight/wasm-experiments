@@ -3,7 +3,8 @@ use crate::dom;
 use super::{
     program::ProgramBuilder,
     mesh::Mesh,
-    vertex::Vertex,
+    vertex::MeshVertex,
+    texture::Texture,
     error::{
         Error,
         Result
@@ -34,8 +35,12 @@ impl WebGlContext {
         ProgramBuilder::new(self.context.clone())
     }
 
-    pub fn build_mesh<T: Into<Vec<Vertex>>>(&self, data: T) -> Result<Mesh> {
+    pub fn build_mesh<T: Into<Vec<MeshVertex>>>(&self, data: T) -> Result<Mesh> {
         Mesh::new(self.context.clone(), data)
+    }
+
+    pub fn build_texture(&self) -> Result<Texture> {
+        Texture::new(self.context.clone())
     }
 
     pub fn viewport(&self, x: i32, y: i32, w: i32, h: i32) {

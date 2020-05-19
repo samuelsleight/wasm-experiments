@@ -6,11 +6,15 @@ mod vertex;
 mod mesh;
 mod uniform;
 mod buffer;
+mod colour;
+mod texture;
 
 pub use error::{Error, Result};
 pub use context::WebGlContext;
 pub use program::{Program, ProgramBuilder};
 pub use attribute::Attribute;
 pub use mesh::Mesh;
-pub use vertex::Vertex;
+pub use vertex::{Vertex, MeshVertex};
 pub use uniform::{Uniform, UniformRepr};
+pub use colour::Colour;
+pub use texture::{Sampler, Texture};

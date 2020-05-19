@@ -81,7 +81,7 @@ impl<'a> BoundBuffer<'a> {
 
     pub fn draw_arrays(&self, vertices: i32) {
         self.buffer.context.draw_arrays(
-            WebGl2RenderingContext::TRIANGLES,
+            WebGl2RenderingContext::TRIANGLE_STRIP,
             0,
             vertices);
     }

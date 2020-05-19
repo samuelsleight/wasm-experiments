@@ -1,6 +1,6 @@
 use super::{
     attribute::ActiveAttribute,
-    vertex::Vertex,
+    vertex::MeshVertex,
     error::Result,
     buffer::{
         Buffer,
@@ -13,17 +13,17 @@ use web_sys::{
 };
 
 pub struct Mesh {
-    vertices: Vec<Vertex>,
+    vertices: Vec<MeshVertex>,
     buffer: Buffer
 }
 
 impl Mesh {
-    pub fn new<T: Into<Vec<Vertex>>>(context: WebGl2RenderingContext, t: T) -> Result<Mesh> {
+    pub fn new<T: Into<Vec<MeshVertex>>>(context: WebGl2RenderingContext, t: T) -> Result<Mesh> {
         let vertices = t.into();
 
         let buffer = unsafe {
-            // Get a &[f32] from the Vec<Vertex>, as Vertex is simply a pair of f32s
-            let f32_slice = std::slice::from_raw_parts(&vertices[0].x, vertices.len() * 2);
+            // Get a &[f32] from the Vec<MeshVertex>, as MeshVertex is simply a quad of f32s
+            let f32_slice = std::slice::from_raw_parts(&vertices[0].pos.x, vertices.len() * 4);
 
             Buffer::new(context, BufferKind::StaticVertex, f32_slice)?
         };
@@ -34,10 +34,11 @@ impl Mesh {
         })
     }
 
-    pub fn render(&self, attribute: &ActiveAttribute<'_>) {
+    pub fn render(&self, position_attribute: &ActiveAttribute<'_>, texture_attribute: &ActiveAttribute<'_>) {
         self.buffer.with_bound(
             |buffer| {
-                attribute.vertex_attrib_pointer();
+                position_attribute.vertex_attrib_pointer(2, 0);
+                texture_attribute.vertex_attrib_pointer(2, 2);
                 buffer.draw_arrays(self.vertices.len() as i32);
             });
     }

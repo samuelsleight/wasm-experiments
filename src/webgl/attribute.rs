@@ -41,7 +41,7 @@ impl Attribute {
 }
 
 impl<'a> ActiveAttribute<'a> {
-    pub fn vertex_attrib_pointer(&self) {
-        self.attribute.context.vertex_attrib_pointer_with_i32(self.attribute.location, 2, WebGl2RenderingContext::FLOAT, false, 0, 0);
+    pub fn vertex_attrib_pointer(&self, stride: i32, offset: i32) {
+        self.attribute.context.vertex_attrib_pointer_with_i32(self.attribute.location, 2, WebGl2RenderingContext::FLOAT, false, stride * 8, offset * 4);
     }
 }

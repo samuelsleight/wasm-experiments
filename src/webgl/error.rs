@@ -26,6 +26,11 @@ pub enum Error {
     // Buffer Errors
     BufferCreationFailure,
 
+    // Texture Errors
+    TextureCreationFailure,
+    TextureImageFailure(String),
+    SamplerCreationFailure,
+
     // Temporary
     Other(String)
 }
@@ -51,6 +56,11 @@ impl Display for Error {
 
             // Buffer Errors
             Error::BufferCreationFailure => write!(f, "Failed to create buffer"),
+
+            // Texture Errors
+            Error::TextureCreationFailure => write!(f, "Failed to create texture"),
+            Error::TextureImageFailure(ref s) => write!(f, "Failed to upload image to texture: {}", s),
+            Error::SamplerCreationFailure => write!(f, "Error getting sampler location"),
 
             // Temporary
             Error::Other(ref s) => write!(f, "{}", s)

@@ -12,8 +12,11 @@ use crate::webgl::{
     Attribute,
     Mesh,
     Vertex,
+    MeshVertex,
     Uniform,
     Program,
+    Colour,
+    Texture,
     Result
 };
 
@@ -23,9 +26,12 @@ pub struct Renderer {
     program: Program,
 
     position_attribute: Attribute,
+    texture_attribute: Attribute,
 
     global_uniforms: Uniform<GlobalUniforms>,
     frame_uniforms: Uniform<FrameUniforms>,
+
+    texture: Texture,
 
     meshes: Vec<Mesh>
 }
@@ -39,10 +45,11 @@ impl Renderer {
             .link()?;
 
         let position_attribute = program.attribute("scene_position")?;
+        let texture_attribute = program.attribute("tex_coords")?;
 
         let meshes = vec![
-            context.build_mesh([Vertex::new(250.0, 300.0), Vertex::new(450.0, 600.0), Vertex::new(700.0, 250.0)])?,
-            context.build_mesh([Vertex::new(550.0, 500.0), Vertex::new(800.0, 750.0), Vertex::new(950.0, 150.0)])?
+            context.build_mesh([MeshVertex::new(250.0, 300.0, 0.0, 0.0), MeshVertex::new(450.0, 600.0, 1.0, 0.0), MeshVertex::new(450.0, 110.0, 0.0, 1.0), MeshVertex::new(700.0, 250.0, 1.0, 1.0)])?,
+            context.build_mesh([MeshVertex::new(550.0, 500.0, 0.0, 0.0), MeshVertex::new(800.0, 750.0, 0.0, 1.0), MeshVertex::new(950.0, 150.0, 1.0, 1.0)])?
         ];
 
         let global_uniforms = program.uniform(
@@ -56,12 +63,37 @@ impl Renderer {
                 time: 0.0
             })?;
 
+        let texture = context.build_texture()?;
+
+        {
+            let mut vec = Vec::new();
+            let size = 32;
+            for i in 0..size {
+                for j in 0..size {
+                    let val = i * j;
+
+                    vec.push(Colour::new(
+                        (255.0 * (val as f64 / (size * size) as f64)) as u8,
+                        255 - ((255.0 * (i as f64 / size as f64)) as u8),
+                        255 - ((255.0 * (j as f64 / size as f64)) as u8),
+                        255));
+                }
+            }
+
+            texture.update(size, vec)?;
+        }
+
+        let sampler = program.sampler("tex")?;
+        program.with(|| texture.with(|texture| sampler.update(&texture)));
+
         Ok(Renderer {
             context,
             program,
             position_attribute,
+            texture_attribute,
             global_uniforms,
             frame_uniforms,
+            texture,
             meshes,
         })
     }
@@ -88,11 +120,17 @@ impl Renderer {
 
         self.program.with(
             || {
-                self.position_attribute.with(
-                    |attribute| {
-                        for mesh in &self.meshes {
-                            mesh.render(&attribute);
-                        }
+                self.texture.with(
+                    |_| {
+                        self.position_attribute.with(
+                            |position_attribute| {
+                                self.texture_attribute.with(
+                                    |texture_attribute| {
+                                        for mesh in &self.meshes {
+                                            mesh.render(&position_attribute, &texture_attribute);
+                                        }
+                                    });
+                            });
                     });
             });
     }

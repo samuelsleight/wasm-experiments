@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use super::{
     attribute::Attribute,
+    texture::Sampler,
     uniform::{
         Uniform,
         UniformRepr
@@ -124,6 +125,10 @@ impl Program {
 
     pub fn uniform<T: UniformRepr>(&self, default: &T) -> Result<Uniform<T>> {
         Uniform::new(self.context.clone(), &self.program, default)
+    }
+
+    pub fn sampler(&self, location: &str) -> Result<Sampler> {
+        Sampler::new(self.context.clone(), &self.program, location)
     }
 
     pub fn with<U, F: FnOnce() -> U>(&self, f: F) -> U {

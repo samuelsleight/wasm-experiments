@@ -7,8 +7,12 @@ layout(std140) uniform frame_uniforms {
     float time;
 };
 
+uniform sampler2D tex;
+
+in vec2 fragment_tex_coords;
+
 out vec4 colour;
 
 void main() {
-    colour = vec4(time / 1000.0, 1.0 - (time / 1000.0), 1.0, 1.0);
+    colour = texture(tex, fragment_tex_coords);
 }
