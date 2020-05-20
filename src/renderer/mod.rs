@@ -15,7 +15,6 @@ use crate::webgl::{
     MeshVertex,
     Uniform,
     Program,
-    Colour,
     Texture,
     Result
 };
@@ -64,24 +63,7 @@ impl Renderer {
             })?;
 
         let texture = context.build_texture()?;
-
-        {
-            let mut vec = Vec::new();
-            let size = 32;
-            for i in 0..size {
-                for j in 0..size {
-                    let val = i * j;
-
-                    vec.push(Colour::new(
-                        (255.0 * (val as f64 / (size * size) as f64)) as u8,
-                        255 - ((255.0 * (i as f64 / size as f64)) as u8),
-                        255 - ((255.0 * (j as f64 / size as f64)) as u8),
-                        255));
-                }
-            }
-
-            texture.update(size, vec)?;
-        }
+        texture.update(256, crate::world::generate(256, 256))?;
 
         let sampler = program.sampler("tex")?;
         program.with(|| texture.with(|texture| sampler.update(&texture)));

@@ -17,6 +17,8 @@ js-sys = "0.3.39"
 boolinator = "2.4.0"
 enumset = "1.0.0"
 
+worldgen = "0.5.0"
+
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
