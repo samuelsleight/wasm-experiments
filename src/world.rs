@@ -20,15 +20,15 @@ use worldgen::{
     }
 };
 
-pub fn generate(w: i64, h: i64) -> Vec<Colour> {
+pub fn generate(seed: &str, w: i64, h: i64) -> Vec<Colour> {
     let noise = PerlinNoise::new();
 
     let nm1 = NoiseMap::new(noise)
-        .set(Seed::of("Hello?"))
+        .set(Seed::of::<String>(seed.chars().rev().collect()))
         .set(Step::of(0.002, 0.002));
 
     let nm2 = NoiseMap::new(noise)
-        .set(Seed::of("Hello!"))
+        .set(Seed::of(seed))
         .set(Step::of(0.05, 0.05));
 
     let nm = Box::new(nm1 + nm2 * 3);

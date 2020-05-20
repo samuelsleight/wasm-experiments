@@ -69,6 +69,11 @@ impl Context {
     }
 
     #[wasm_bindgen]
+    pub fn generate_world(&self, seed: &str) -> Result<(), JsValue> {
+        Ok(self.renderer.update_texture(seed)?)
+    }
+
+    #[wasm_bindgen]
     pub fn tick(&mut self, time: f32) {
         let delta = time - self.last_time;
         self.last_time = time;

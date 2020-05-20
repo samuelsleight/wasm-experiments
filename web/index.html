@@ -9,6 +9,22 @@
     <body>
         <canvas id="webgl"></canvas>
 
+        <div id="overlay">
+            <div id="overlay_menu">
+                <span id="menu_settings">Settings</span>
+                <span id="menu_reset">Reset</span>
+            </div>
+
+            <div id="overlay_item">
+                <div id="settings">
+                    <form id="form_settings">
+                        <input type="text" id="settings_seed" name="seed" /><br />
+                        <input type="submit" />
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <script type="module" src="index.js"></script>
     </body>
 </html>

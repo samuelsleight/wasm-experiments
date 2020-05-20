@@ -63,12 +63,11 @@ impl Renderer {
             })?;
 
         let texture = context.build_texture()?;
-        texture.update(256, crate::world::generate(256, 256))?;
 
         let sampler = program.sampler("tex")?;
         program.with(|| texture.with(|texture| sampler.update(&texture)));
 
-        Ok(Renderer {
+        let renderer = Renderer {
             context,
             program,
             position_attribute,
@@ -77,7 +76,14 @@ impl Renderer {
             frame_uniforms,
             texture,
             meshes,
-        })
+        };
+
+        renderer.update_texture("default")?;
+        Ok(renderer)
+    }
+
+    pub fn update_texture(&self, seed: &str) -> Result<()> {
+        self.texture.update(256, crate::world::generate(seed, 256, 256))
     }
 
     pub fn resize_viewport(&self, width: u32, height: u32) {

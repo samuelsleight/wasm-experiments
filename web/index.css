@@ -8,3 +8,24 @@ canvas {
     position: absolute;
     display: block;
 }
+
+#overlay {
+    position: absolute;
+    margin: 20px;
+    padding: 10px;
+}
+
+#overlay_menu {
+    margin-bottom: 10px;
+}
+
+#overlay_item > div, #overlay_menu span {
+    background-color: white;
+    border: 1px black solid;
+    border-radius: 5px;
+    padding: 3px;
+}
+
+#overlay_item > div {
+    display: none;
+}
