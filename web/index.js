@@ -24,7 +24,15 @@ context_promise.then(context => {
         "KeyD": context.Direction.Right,
     }
 
+    function has_focus() {
+        return document.activeElement == document.body;
+    }
+
     function keydown(e) {
+        if(!has_focus()) {
+            return;
+        }
+
         const direction = key_directions[e.code];
 
         if(direction !== undefined)
@@ -34,6 +42,10 @@ context_promise.then(context => {
     }
 
     function keyup(e) {
+        if(!has_focus()) {
+            return;
+        }
+
         const direction = key_directions[e.code];
 
         if(direction !== undefined)
