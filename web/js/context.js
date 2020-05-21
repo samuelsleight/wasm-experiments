@@ -1,4 +1,4 @@
-import init, { Context, Direction } from "./pkg/wasm_experiments.js";
+import init, { Context, Direction } from "../pkg/wasm_experiments.js";
 
 async function run() {
     await init();
