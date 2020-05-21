@@ -1,11 +1,2 @@
-import context_promise from './context.js'
-
-context_promise.then(context => {
-    function start(module) {
-        import(module).then(module => module.default(context));
-    }
-
-    start('./input.js');
-    start('./menu.js');
-    start('./tick.js');
-})
+const modules = ['./input.js', './menu.js', './tick.js'];
+import('./context.js').then(module => module.default.then(context => modules.forEach(module => import(module).then(module => module.default(context)))));

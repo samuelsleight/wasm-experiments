@@ -26,8 +26,8 @@ export default context => {
         }
     }
 
-    window.onkeydown = e => key_event(e, direction => context.start_scroll(direction));
-    window.onkeyup = e => key_event(e, direction => context.stop_scroll(direction));
+    window.onkeydown = e => key_event(e, context.start_scroll.bind(context));
+    window.onkeyup = e => key_event(e, context.stop_scroll.bind(context));
 
     window.onresize = () => {
         const canvas = document.getElementById("webgl");
