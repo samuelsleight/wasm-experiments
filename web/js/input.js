@@ -1,17 +1,19 @@
+import { Direction } from './context.js'
+
 function has_focus() {
     return document.activeElement == document.body;
 }
 
 export default context => {
     const key_directions = {
-        "ArrowUp": context.Direction.Up,
-        "KeyW": context.Direction.Up,
-        "ArrowDown": context.Direction.Down,
-        "KeyS": context.Direction.Down,
-        "ArrowLeft": context.Direction.Left,
-        "KeyA": context.Direction.Left,
-        "ArrowRight": context.Direction.Right,
-        "KeyD": context.Direction.Right,
+        "ArrowUp": Direction.Up,
+        "KeyW": Direction.Up,
+        "ArrowDown": Direction.Down,
+        "KeyS": Direction.Down,
+        "ArrowLeft": Direction.Left,
+        "KeyA": Direction.Left,
+        "ArrowRight": Direction.Right,
+        "KeyD": Direction.Right,
     }
 
     function key_event(e, f) {
