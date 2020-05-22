@@ -1,14 +1,12 @@
 import { Context } from './context.js'
 
-export default (context: Context) => {
-    function tick(time: number) {
-        context.tick(time);
-        request_tick();
-    }
-
-    function request_tick() {
-        window.requestAnimationFrame(tick);
-    }
-
-    request_tick();
+function tick(context: Context, time: number) {
+    context.tick(time);
+    request_tick(context);
 }
+
+function request_tick(context: Context) {
+    window.requestAnimationFrame(time => tick(context, time));
+}
+
+export default request_tick;
