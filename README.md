@@ -9,4 +9,4 @@ To compile the typescript:
 
 To run:
 
-    cargo run -p server -- web
+Host a static file server pointing at the web directory

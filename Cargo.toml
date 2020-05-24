@@ -45,4 +45,3 @@ features = [
 opt-level = "s"
 
 [workspace]
-members = ["server"]
