@@ -1,5 +1,7 @@
 mod uniforms;
 
+use std::cmp::Ordering;
+
 use self::{
     uniforms::{
         GlobalUniforms,
@@ -76,22 +78,13 @@ impl Renderer {
 
         let sampler = program.sampler("tex")?;
 
-        let mut chunks = CircularVec::new();
-
-        for _ in 0..4 {
-            let mut chunk = CircularVec::new();
-            chunk.push(context.build_texture()?);
-            chunk.push(context.build_texture()?);
-            chunk.push(context.build_texture()?);
-            chunk.push(context.build_texture()?);
-            chunks.push(chunk);
-        }
+        let chunks = CircularVec::new();
 
         global_uniforms.bind_base();
         frame_uniforms.bind_base();
         shape_uniforms.bind_base();
 
-        let renderer = Renderer {
+        Ok(Renderer {
             context,
             program,
             position_attribute,
@@ -102,10 +95,7 @@ impl Renderer {
             mesh,
             chunks,
             sampler
-        };
-
-        renderer.update_texture("default")?;
-        Ok(renderer)
+        })
     }
 
     pub fn update_texture(&self, seed: &str) -> Result<()> {
@@ -144,20 +134,10 @@ impl Renderer {
     }
 
     pub fn rotate_chunks(&mut self, x: i32, y: i32) {
-        if y < 0 {
-            self.chunks.rotate_right(y.abs() as usize);
-        } else if y > 0 {
-            self.chunks.rotate_left(y as usize);
-        }
+        rotate_vec(&mut self.chunks, y);
 
         for y in 0..self.chunks.len() {
-            let chunk = &mut self.chunks[y];
-
-            if x < 0  {
-                chunk.rotate_right(x.abs() as usize);
-            } else if x > 0 {
-                chunk.rotate_left(x as usize);
-            }
+            rotate_vec(&mut self.chunks[y], x);
         }
     }
 
@@ -194,4 +174,12 @@ impl Renderer {
                     });
             });
     }
+}
+
+fn rotate_vec<T>(vec: &mut CircularVec<T>, value: i32) {
+        match value.cmp(&0) {
+            Ordering::Less => vec.rotate_right(value.abs() as usize),
+            Ordering::Greater => vec.rotate_left(value as usize),
+            _ => ()
+        }
 }
