@@ -1,4 +1,15 @@
-use crate::webgl::Colour;
+use crate::{
+    renderer::Renderer,
+    webgl::{
+        Colour,
+        Texture,
+        Result
+    }
+};
+
+use std::cmp::Ordering;
+
+use circular_vec::CircularVec;
 
 use worldgen::{
     constraint,
@@ -11,7 +22,7 @@ use worldgen::{
         Size
     },
     world::{
-        World,
+        World as WorldGen,
         Tile,
         tile::{
             Constraint,
@@ -20,7 +31,87 @@ use worldgen::{
     }
 };
 
-pub fn generate(seed: &str, w: i64, h: i64, x: i64, y: i64) -> Vec<Colour> {
+pub struct Chunk {
+    pub texture: Texture
+}
+
+pub struct World {
+    worldgen: WorldGen<Colour>,
+    chunks: CircularVec<CircularVec<Chunk>>,
+
+    chunk_size: (u32, u32),
+}
+
+impl World {
+    pub fn new(seed: &str, chunk_width: u32, chunk_height: u32) -> World {
+        let chunk_size = (chunk_width, chunk_height);
+
+        World {
+            worldgen: construct_world(seed, chunk_size),
+            chunks: CircularVec::new(),
+            chunk_size
+        }
+    }
+
+    pub fn resize(&mut self, renderer: &Renderer, width: u32, height: u32) -> Result<()> {
+        let x_chunks = (width / 256) + 2;
+        let y_chunks = (height / 256) + 2;
+
+        while self.chunks.len() <= y_chunks as usize {
+            self.chunks.push(CircularVec::new());
+        }
+
+        for y in 0..self.chunks.len() {
+            loop {
+                let row_len = self.chunks[y].len();
+
+                if row_len > x_chunks as usize {
+                    break;
+                }
+
+                let texture = renderer.build_texture()?;
+                let chunk = self.generate_chunk(row_len as i64, y as i64);
+                texture.update(self.chunk_size.0 as usize, chunk)?;
+
+                self.chunks[y].push(Chunk {
+                   texture
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn set_seed(&mut self, seed: &str) -> Result<()> {
+        self.worldgen = construct_world(seed, self.chunk_size);
+
+        for (y, row) in self.chunks.iter().enumerate() {
+            for(x, chunk) in row.iter().enumerate() {
+                chunk.texture.update(self.chunk_size.0 as usize, self.generate_chunk(x as i64, y as i64))?
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn rotate_chunks(&mut self, x: i32, y: i32) {
+        rotate_vec(&mut self.chunks, y);
+
+        for y in 0..self.chunks.len() {
+            rotate_vec(&mut self.chunks[y], x);
+        }
+    }
+
+    pub fn chunks(&self) -> &CircularVec<CircularVec<Chunk>> {
+        &self.chunks
+    }
+
+    fn generate_chunk(&self, x: i64, y: i64) -> Vec<Colour> {
+        self.worldgen.generate(x, y).unwrap().into_iter().flatten().collect()
+    }
+}
+
+fn construct_world(seed: &str, chunk_size: (u32, u32)) -> WorldGen<Colour> {
     let noise = PerlinNoise::new();
 
     let nm1 = NoiseMap::new(noise)
@@ -33,8 +124,8 @@ pub fn generate(seed: &str, w: i64, h: i64, x: i64, y: i64) -> Vec<Colour> {
 
     let nm = Box::new(nm1 + nm2 * 3);
 
-    let world = World::new()
-        .set(Size::of(w, h))
+    WorldGen::new()
+        .set(Size::of(chunk_size.0 as i64, chunk_size.1 as i64))
 
         // Water
         .add(Tile::new(Colour::new(0, 0, 255, 255))
@@ -49,7 +140,13 @@ pub fn generate(seed: &str, w: i64, h: i64, x: i64, y: i64) -> Vec<Colour> {
             .when(constraint!(nm, > 0.75)))
 
         // Hills
-        .add(Tile::new(Colour::new(0, 180, 69, 255)));
+        .add(Tile::new(Colour::new(0, 180, 69, 255)))
+}
 
-    world.generate(x, y).unwrap().into_iter().flatten().collect()
+fn rotate_vec<T>(vec: &mut CircularVec<T>, value: i32) {
+        match value.cmp(&0) {
+            Ordering::Less => vec.rotate_right(value.abs() as usize),
+            Ordering::Greater => vec.rotate_left(value as usize),
+            _ => ()
+        }
 }

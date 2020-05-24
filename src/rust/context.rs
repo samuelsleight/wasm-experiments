@@ -1,6 +1,7 @@
 use crate::{
     webgl::WebGlContext,
-    renderer::Renderer
+    renderer::Renderer,
+    world::World
 };
 
 use enumset::{
@@ -23,12 +24,12 @@ pub enum Direction {
 pub struct Context {
     renderer: Renderer,
 
+    world: World,
+
     last_time: f32,
 
     current_directions: EnumSet<Direction>,
     current_offset: (i32, i32),
-
-    seed: String
 }
 
 #[wasm_bindgen]
@@ -39,21 +40,19 @@ impl Context {
 
         Ok(Context{
             renderer: Renderer::new(WebGlContext::from_canvas_with_id("webgl")?)?,
+            world: World::new("default", 256, 256),
 
             last_time: 0.0,
 
             current_directions: EnumSet::new(),
             current_offset: (0, 0),
-
-            seed: "default".into()
         })
     }
 
     #[wasm_bindgen]
     pub fn resize_viewport(&mut self, width: u32, height: u32) -> Result<(), JsValue> {
-        self.renderer.resize_viewport(width, height)?;
-        self.renderer.update_texture(&self.seed)?;
-        Ok(())
+        self.renderer.resize_viewport(width, height);
+        Ok(self.world.resize(&self.renderer, width, height)?)
     }
 
     #[wasm_bindgen]
@@ -75,9 +74,8 @@ impl Context {
     }
 
     #[wasm_bindgen]
-    pub fn generate_world(&mut self, seed: String) -> Result<(), JsValue> {
-        self.seed = seed;
-        Ok(self.renderer.update_texture(&self.seed)?)
+    pub fn generate_world(&mut self, seed: &str) -> Result<(), JsValue> {
+        Ok(self.world.set_seed(seed)?)
     }
 
     #[wasm_bindgen]
@@ -95,21 +93,21 @@ impl Context {
 
         if self.current_offset.0 < 0 {
             self.current_offset.0 += 256;
-            self.renderer.rotate_chunks(-1, 0);
+            self.world.rotate_chunks(-1, 0);
         } else if self.current_offset.0 > 256 {
             self.current_offset.0 -= 256;
-            self.renderer.rotate_chunks(1, 0);
+            self.world.rotate_chunks(1, 0);
         }
 
         if self.current_offset.1 < 0 {
             self.current_offset.1 += 256;
-            self.renderer.rotate_chunks(0, -1);
+            self.world.rotate_chunks(0, -1);
         } else if self.current_offset.1 > 256 {
             self.current_offset.1 -= 256;
-            self.renderer.rotate_chunks(0, 1);
+            self.world.rotate_chunks(0, 1);
         }
 
-        self.renderer.render(time, self.current_offset);
+        self.renderer.render(self.world.chunks(), time, self.current_offset);
     }
 }
 

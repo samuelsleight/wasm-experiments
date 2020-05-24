@@ -1,6 +1,6 @@
 mod uniforms;
 
-use std::cmp::Ordering;
+use circular_vec::CircularVec;
 
 use self::{
     uniforms::{
@@ -10,19 +10,20 @@ use self::{
     }
 };
 
-use circular_vec::CircularVec;
-
-use crate::webgl::{
-    WebGlContext,
-    Attribute,
-    Mesh,
-    Vertex,
-    MeshVertex,
-    Uniform,
-    Program,
-    Texture,
-    Sampler,
-    Result
+use crate::{
+    world::Chunk,
+    webgl::{
+        WebGlContext,
+        Attribute,
+        Mesh,
+        Vertex,
+        MeshVertex,
+        Uniform,
+        Program,
+        Texture,
+        Sampler,
+        Result
+    }
 };
 
 pub struct Renderer {
@@ -40,7 +41,6 @@ pub struct Renderer {
     mesh: Mesh,
 
     sampler: Sampler,
-    chunks: CircularVec<CircularVec<Texture>>
 }
 
 impl Renderer {
@@ -78,8 +78,6 @@ impl Renderer {
 
         let sampler = program.sampler("tex")?;
 
-        let chunks = CircularVec::new();
-
         global_uniforms.bind_base();
         frame_uniforms.bind_base();
         shape_uniforms.bind_base();
@@ -93,55 +91,24 @@ impl Renderer {
             shape_uniforms,
             frame_uniforms,
             mesh,
-            chunks,
             sampler
         })
     }
 
-    pub fn update_texture(&self, seed: &str) -> Result<()> {
-        for (y, row) in self.chunks.iter().enumerate() {
-            for(x, chunk) in row.iter().enumerate() {
-                chunk.update(256, crate::world::generate(seed, 256, 256, x as i64, y as i64))?;
-            }
-        }
-
-        Ok(())
+    pub fn build_texture(&self) -> Result<Texture> {
+        self.context.build_texture()
     }
 
-    pub fn resize_viewport(&mut self, width: u32, height: u32) -> Result<()> {
+    pub fn resize_viewport(&mut self, width: u32, height: u32) {
         self.context.viewport(0, 0, width as i32, height as i32);
+
         self.global_uniforms.update(
             &GlobalUniforms {
                 dimensions: Vertex::new(width as f32, height as f32)
             });
-
-        let x_chunks = (width / 256) + 2;
-        let y_chunks = (height / 256) + 2;
-
-        while self.chunks.len() <= y_chunks as usize {
-            self.chunks.push(CircularVec::new());
-        }
-
-        for y in 0..self.chunks.len() {
-            let chunk = &mut self.chunks[y];
-
-            while chunk.len() <= x_chunks as usize {
-                chunk.push(self.context.build_texture()?);
-            }
-        }
-
-        Ok(())
     }
 
-    pub fn rotate_chunks(&mut self, x: i32, y: i32) {
-        rotate_vec(&mut self.chunks, y);
-
-        for y in 0..self.chunks.len() {
-            rotate_vec(&mut self.chunks[y], x);
-        }
-    }
-
-    pub fn render(&mut self, time: f32, offset: (i32, i32)) {
+    pub fn render(&mut self, chunks: &CircularVec<CircularVec<Chunk>>, time: f32, offset: (i32, i32)) {
         self.frame_uniforms.update(
             &FrameUniforms {
                 offset: Vertex::new(offset.0 as f32 + 256.0, offset.1 as f32 + 256.0),
@@ -154,14 +121,14 @@ impl Renderer {
             &self.position_attribute,
             &self.texture_attribute,
             |frame| {
-                for (y, row) in self.chunks.iter().enumerate() {
+                for (y, row) in chunks.iter().enumerate() {
                     for (x, chunk) in row.iter().enumerate() {
                         self.shape_uniforms.update(
                             &ShapeUniforms {
                                 offset: Vertex::new((x * 256) as f32, (y * 256) as f32)
                             });
 
-                        chunk.with(
+                        chunk.texture.with(
                             |texture| {
                                 self.sampler.update(&texture);
                                 frame.render(&self.mesh);
@@ -170,12 +137,4 @@ impl Renderer {
                 }
             });
     }
-}
-
-fn rotate_vec<T>(vec: &mut CircularVec<T>, value: i32) {
-        match value.cmp(&0) {
-            Ordering::Less => vec.rotate_right(value.abs() as usize),
-            Ordering::Greater => vec.rotate_left(value as usize),
-            _ => ()
-        }
 }
