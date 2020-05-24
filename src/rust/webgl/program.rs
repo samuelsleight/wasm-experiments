@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
 
 use super::{
-    attribute::Attribute,
+    attribute::{Attribute, ActiveAttribute},
     texture::Sampler,
+    mesh::Mesh,
     uniform::{
         Uniform,
         UniformRepr
@@ -47,6 +48,11 @@ impl NeedsFragmentShader for () {
 
 impl NeedsFragmentShader for HasVertexShader {
     type WithFragmentShader = HasBothShaders;
+}
+
+pub struct Frame<'a, 'b> {
+    vertex_attribute: ActiveAttribute<'a>,
+    texture_attribute: ActiveAttribute<'b>
 }
 
 pub struct Program {
@@ -136,6 +142,31 @@ impl Program {
         let result = f();
         self.context.use_program(None);
         result
+    }
+
+    pub fn render_frame<F>(&self, vertex_attribute: &Attribute, texture_attribute: &Attribute, f: F)
+        where
+            F: FnOnce(Frame)
+    {
+        self.with(
+            || {
+                vertex_attribute.with(
+                    |vertex_attribute| {
+                        texture_attribute.with(
+                            |texture_attribute| {
+                                f(Frame {
+                                    vertex_attribute,
+                                    texture_attribute,
+                                });
+                            });
+                    });
+            });
+    }
+}
+
+impl<'a, 'b> Frame<'a, 'b> {
+    pub fn render(&self, mesh: &Mesh) {
+        mesh.render(&self.vertex_attribute, &self.texture_attribute);
     }
 }
 

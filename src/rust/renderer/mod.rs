@@ -150,28 +150,24 @@ impl Renderer {
 
         self.context.clear_colour(0.0, 0.0, 0.0, 1.0);
 
-        self.program.with(
-            || {
-                self.position_attribute.with(
-                    |position_attribute| {
-                        self.texture_attribute.with(
-                            |texture_attribute| {
-                                for (y, row) in self.chunks.iter().enumerate() {
-                                    for (x, chunk) in row.iter().enumerate() {
-                                        self.shape_uniforms.update(
-                                            &ShapeUniforms {
-                                                offset: Vertex::new((x * 256) as f32, (y * 256) as f32)
-                                            });
-
-                                        chunk.with(
-                                            |texture| {
-                                                self.sampler.update(&texture);
-                                                self.mesh.render(&position_attribute, &texture_attribute);
-                                            });
-                                    }
-                                }
+        self.program.render_frame(
+            &self.position_attribute,
+            &self.texture_attribute,
+            |frame| {
+                for (y, row) in self.chunks.iter().enumerate() {
+                    for (x, chunk) in row.iter().enumerate() {
+                        self.shape_uniforms.update(
+                            &ShapeUniforms {
+                                offset: Vertex::new((x * 256) as f32, (y * 256) as f32)
                             });
-                    });
+
+                        chunk.with(
+                            |texture| {
+                                self.sampler.update(&texture);
+                                frame.render(&self.mesh);
+                            });
+                    }
+                }
             });
     }
 }
