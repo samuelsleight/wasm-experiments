@@ -3,9 +3,12 @@ mod uniforms;
 use self::{
     uniforms::{
         GlobalUniforms,
+        ShapeUniforms,
         FrameUniforms
     }
 };
+
+use circular_vec::CircularVec;
 
 use crate::webgl::{
     WebGlContext,
@@ -16,6 +19,7 @@ use crate::webgl::{
     Uniform,
     Program,
     Texture,
+    Sampler,
     Result
 };
 
@@ -28,11 +32,13 @@ pub struct Renderer {
     texture_attribute: Attribute,
 
     global_uniforms: Uniform<GlobalUniforms>,
+    shape_uniforms: Uniform<ShapeUniforms>,
     frame_uniforms: Uniform<FrameUniforms>,
 
-    texture: Texture,
+    mesh: Mesh,
 
-    meshes: Vec<Mesh>
+    sampler: Sampler,
+    chunks: CircularVec<CircularVec<Texture>>
 }
 
 impl Renderer {
@@ -46,14 +52,20 @@ impl Renderer {
         let position_attribute = program.attribute("scene_position")?;
         let texture_attribute = program.attribute("tex_coords")?;
 
-        let meshes = vec![
-            context.build_mesh([MeshVertex::new(250.0, 300.0, 0.0, 0.0), MeshVertex::new(450.0, 600.0, 1.0, 0.0), MeshVertex::new(450.0, 110.0, 0.0, 1.0), MeshVertex::new(700.0, 250.0, 1.0, 1.0)])?,
-            context.build_mesh([MeshVertex::new(550.0, 500.0, 0.0, 0.0), MeshVertex::new(800.0, 750.0, 0.0, 1.0), MeshVertex::new(950.0, 150.0, 1.0, 1.0)])?
-        ];
+        let mesh = context.build_mesh([
+            MeshVertex::new(0.0, 0.0, 0.0, 0.0),
+            MeshVertex::new(256.0, 0.0, 1.0, 0.0),
+            MeshVertex::new(0.0, 256.0, 0.0, 1.0),
+            MeshVertex::new(256.0, 256.0, 1.0, 1.0)])?;
 
         let global_uniforms = program.uniform(
             &GlobalUniforms {
                 dimensions: Vertex::new(0.0, 0.0)
+            })?;
+
+        let shape_uniforms = program.uniform(
+            &ShapeUniforms {
+                offset: Vertex::new(0.0, 0.0)
             })?;
 
         let frame_uniforms = program.uniform(
@@ -62,10 +74,22 @@ impl Renderer {
                 time: 0.0
             })?;
 
-        let texture = context.build_texture()?;
-
         let sampler = program.sampler("tex")?;
-        program.with(|| texture.with(|texture| sampler.update(&texture)));
+
+        let mut chunks = CircularVec::new();
+
+        for _ in 0..4 {
+            let mut chunk = CircularVec::new();
+            chunk.push(context.build_texture()?);
+            chunk.push(context.build_texture()?);
+            chunk.push(context.build_texture()?);
+            chunk.push(context.build_texture()?);
+            chunks.push(chunk);
+        }
+
+        global_uniforms.bind_base();
+        frame_uniforms.bind_base();
+        shape_uniforms.bind_base();
 
         let renderer = Renderer {
             context,
@@ -73,9 +97,11 @@ impl Renderer {
             position_attribute,
             texture_attribute,
             global_uniforms,
+            shape_uniforms,
             frame_uniforms,
-            texture,
-            meshes,
+            mesh,
+            chunks,
+            sampler
         };
 
         renderer.update_texture("default")?;
@@ -83,41 +109,87 @@ impl Renderer {
     }
 
     pub fn update_texture(&self, seed: &str) -> Result<()> {
-        self.texture.update(256, crate::world::generate(seed, 256, 256))
+        for (y, row) in self.chunks.iter().enumerate() {
+            for(x, chunk) in row.iter().enumerate() {
+                chunk.update(256, crate::world::generate(seed, 256, 256, x as i64, y as i64))?;
+            }
+        }
+
+        Ok(())
     }
 
-    pub fn resize_viewport(&self, width: u32, height: u32) {
+    pub fn resize_viewport(&mut self, width: u32, height: u32) -> Result<()> {
         self.context.viewport(0, 0, width as i32, height as i32);
         self.global_uniforms.update(
             &GlobalUniforms {
                 dimensions: Vertex::new(width as f32, height as f32)
             });
+
+        let x_chunks = (width / 256) + 2;
+        let y_chunks = (height / 256) + 2;
+
+        while self.chunks.len() <= y_chunks as usize {
+            self.chunks.push(CircularVec::new());
+        }
+
+        for y in 0..self.chunks.len() {
+            let chunk = &mut self.chunks[y];
+
+            while chunk.len() <= x_chunks as usize {
+                chunk.push(self.context.build_texture()?);
+            }
+        }
+
+        Ok(())
     }
 
-    pub fn render(&self, time: f32, offset: (i32, i32)) {
+    pub fn rotate_chunks(&mut self, x: i32, y: i32) {
+        if y < 0 {
+            self.chunks.rotate_right(y.abs() as usize);
+        } else if y > 0 {
+            self.chunks.rotate_left(y as usize);
+        }
+
+        for y in 0..self.chunks.len() {
+            let chunk = &mut self.chunks[y];
+
+            if x < 0  {
+                chunk.rotate_right(x.abs() as usize);
+            } else if x > 0 {
+                chunk.rotate_left(x as usize);
+            }
+        }
+    }
+
+    pub fn render(&mut self, time: f32, offset: (i32, i32)) {
         self.frame_uniforms.update(
             &FrameUniforms {
-                offset: Vertex::new(offset.0 as f32, offset.1 as f32),
+                offset: Vertex::new(offset.0 as f32 + 256.0, offset.1 as f32 + 256.0),
                 time: (time as i32 % 1000) as f32
             });
-
-        self.global_uniforms.bind_base();
-        self.frame_uniforms.bind_base();
 
         self.context.clear_colour(0.0, 0.0, 0.0, 1.0);
 
         self.program.with(
             || {
-                self.texture.with(
-                    |_| {
-                        self.position_attribute.with(
-                            |position_attribute| {
-                                self.texture_attribute.with(
-                                    |texture_attribute| {
-                                        for mesh in &self.meshes {
-                                            mesh.render(&position_attribute, &texture_attribute);
-                                        }
-                                    });
+                self.position_attribute.with(
+                    |position_attribute| {
+                        self.texture_attribute.with(
+                            |texture_attribute| {
+                                for (y, row) in self.chunks.iter().enumerate() {
+                                    for (x, chunk) in row.iter().enumerate() {
+                                        self.shape_uniforms.update(
+                                            &ShapeUniforms {
+                                                offset: Vertex::new((x * 256) as f32, (y * 256) as f32)
+                                            });
+
+                                        chunk.with(
+                                            |texture| {
+                                                self.sampler.update(&texture);
+                                                self.mesh.render(&position_attribute, &texture_attribute);
+                                            });
+                                    }
+                                }
                             });
                     });
             });

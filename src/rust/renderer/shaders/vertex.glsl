@@ -9,6 +9,10 @@ layout(std140) uniform global_uniforms {
     vec2 scene_dimensions;
 };
 
+layout(std140) uniform shape_uniforms {
+    vec2 shape_offset;
+};
+
 layout(std140) uniform frame_uniforms {
     vec2 scene_offset;
     mediump float time;
@@ -17,7 +21,7 @@ layout(std140) uniform frame_uniforms {
 out vec2 fragment_tex_coords;
 
 void main() {
-    vec2 device_position = 2.0 * (scene_position - scene_offset) / scene_dimensions - 1.0;
+    vec2 device_position = 2.0 * (shape_offset + scene_position - scene_offset) / scene_dimensions - 1.0;
     gl_Position = vec4(device_position, 0.0, 1.0);
 
     fragment_tex_coords = tex_coords;

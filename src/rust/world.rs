@@ -20,16 +20,16 @@ use worldgen::{
     }
 };
 
-pub fn generate(seed: &str, w: i64, h: i64) -> Vec<Colour> {
+pub fn generate(seed: &str, w: i64, h: i64, x: i64, y: i64) -> Vec<Colour> {
     let noise = PerlinNoise::new();
 
     let nm1 = NoiseMap::new(noise)
         .set(Seed::of::<String>(seed.chars().rev().collect()))
-        .set(Step::of(0.002, 0.002));
+        .set(Step::of(0.001, 0.001));
 
     let nm2 = NoiseMap::new(noise)
         .set(Seed::of(seed))
-        .set(Step::of(0.05, 0.05));
+        .set(Step::of(0.02, 0.02));
 
     let nm = Box::new(nm1 + nm2 * 3);
 
@@ -46,10 +46,10 @@ pub fn generate(seed: &str, w: i64, h: i64) -> Vec<Colour> {
 
         // Mountains
         .add(Tile::new(Colour::new(200, 200, 200, 255))
-            .when(constraint!(nm, > 0.8)))
+            .when(constraint!(nm, > 0.75)))
 
         // Hills
         .add(Tile::new(Colour::new(0, 180, 69, 255)));
 
-    world.generate(0, 0).unwrap().into_iter().flatten().collect()
+    world.generate(x, y).unwrap().into_iter().flatten().collect()
 }

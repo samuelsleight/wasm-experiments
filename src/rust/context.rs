@@ -27,6 +27,8 @@ pub struct Context {
 
     current_directions: EnumSet<Direction>,
     current_offset: (i32, i32),
+
+    seed: String
 }
 
 #[wasm_bindgen]
@@ -42,12 +44,16 @@ impl Context {
 
             current_directions: EnumSet::new(),
             current_offset: (0, 0),
+
+            seed: "default".into()
         })
     }
 
     #[wasm_bindgen]
-    pub fn resize_viewport(&self, width: u32, height: u32) {
-        self.renderer.resize_viewport(width, height);
+    pub fn resize_viewport(&mut self, width: u32, height: u32) -> Result<(), JsValue> {
+        self.renderer.resize_viewport(width, height)?;
+        self.renderer.update_texture(&self.seed)?;
+        Ok(())
     }
 
     #[wasm_bindgen]
@@ -69,8 +75,9 @@ impl Context {
     }
 
     #[wasm_bindgen]
-    pub fn generate_world(&self, seed: &str) -> Result<(), JsValue> {
-        Ok(self.renderer.update_texture(seed)?)
+    pub fn generate_world(&mut self, seed: String) -> Result<(), JsValue> {
+        self.seed = seed;
+        Ok(self.renderer.update_texture(&self.seed)?)
     }
 
     #[wasm_bindgen]
@@ -78,13 +85,29 @@ impl Context {
         let delta = time - self.last_time;
         self.last_time = time;
 
-        let scroll_speed_per_second = 100.0;
+        let scroll_speed_per_second = 200.0;
 
         let fraction_of_second = delta / 1000.0;
         let scroll_speed = scroll_speed_per_second * fraction_of_second;
 
         self.current_offset.0 += ((self.current_direction_scroll_value(Direction::Right) - self.current_direction_scroll_value(Direction::Left)) as f32 * scroll_speed) as i32;
         self.current_offset.1 += ((self.current_direction_scroll_value(Direction::Up) - self.current_direction_scroll_value(Direction::Down)) as f32 * scroll_speed) as i32;
+
+        if self.current_offset.0 < 0 {
+            self.current_offset.0 += 256;
+            self.renderer.rotate_chunks(-1, 0);
+        } else if self.current_offset.0 > 256 {
+            self.current_offset.0 -= 256;
+            self.renderer.rotate_chunks(1, 0);
+        }
+
+        if self.current_offset.1 < 0 {
+            self.current_offset.1 += 256;
+            self.renderer.rotate_chunks(0, -1);
+        } else if self.current_offset.1 > 256 {
+            self.current_offset.1 -= 256;
+            self.renderer.rotate_chunks(0, 1);
+        }
 
         self.renderer.render(time, self.current_offset);
     }

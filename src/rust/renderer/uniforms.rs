@@ -21,6 +21,23 @@ impl UniformRepr for GlobalUniforms {
 }
 
 #[repr(C)]
+pub struct ShapeUniforms {
+    pub offset: Vertex
+}
+
+impl UniformRepr for ShapeUniforms {
+    fn as_slice(&self) -> &[f32] {
+        unsafe {
+            std::slice::from_raw_parts(&self.offset.x, 2)
+        }
+    }
+
+    fn block_name() -> &'static str {
+        "shape_uniforms"
+    }
+}
+
+#[repr(C)]
 pub struct FrameUniforms {
     pub offset: Vertex,
     pub time: f32
