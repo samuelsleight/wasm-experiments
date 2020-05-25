@@ -18,7 +18,7 @@ js-sys = "0.3.39"
 boolinator = "2.4.0"
 enumset = "1.0.0"
 
-worldgen = "0.5.2"
+worldgen = "0.5.3"
 circular-vec = { path = "circular-vec" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
@@ -30,6 +30,7 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 [dependencies.web-sys]
 version = "0.3.39"
 features = [
+    'console',
     'Document',
     'Element',
     'HtmlCanvasElement',

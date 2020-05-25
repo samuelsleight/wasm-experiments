@@ -79,7 +79,7 @@ impl Context {
     }
 
     #[wasm_bindgen]
-    pub fn tick(&mut self, time: f32) {
+    pub fn tick(&mut self, time: f32) -> Result<(), JsValue> {
         let delta = time - self.last_time;
         self.last_time = time;
 
@@ -93,21 +93,22 @@ impl Context {
 
         if self.current_offset.0 < 0 {
             self.current_offset.0 += 256;
-            self.world.rotate_chunks(-1, 0);
+            self.world.rotate_chunks(-1, 0)?;
         } else if self.current_offset.0 > 256 {
             self.current_offset.0 -= 256;
-            self.world.rotate_chunks(1, 0);
+            self.world.rotate_chunks(1, 0)?;
         }
 
         if self.current_offset.1 < 0 {
             self.current_offset.1 += 256;
-            self.world.rotate_chunks(0, -1);
+            self.world.rotate_chunks(0, -1)?;
         } else if self.current_offset.1 > 256 {
             self.current_offset.1 -= 256;
-            self.world.rotate_chunks(0, 1);
+            self.world.rotate_chunks(0, 1)?;
         }
 
         self.renderer.render(self.world.chunks(), time, self.current_offset);
+        Ok(())
     }
 }
 

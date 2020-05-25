@@ -40,6 +40,7 @@ pub struct World {
     chunks: CircularVec<CircularVec<Chunk>>,
 
     chunk_size: (u32, u32),
+    chunk_offset: (i32, i32)
 }
 
 impl World {
@@ -49,7 +50,9 @@ impl World {
         World {
             worldgen: construct_world(seed, chunk_size),
             chunks: CircularVec::new(),
-            chunk_size
+
+            chunk_size,
+            chunk_offset: (0, 0)
         }
     }
 
@@ -94,12 +97,69 @@ impl World {
         Ok(())
     }
 
-    pub fn rotate_chunks(&mut self, x: i32, y: i32) {
-        rotate_vec(&mut self.chunks, y);
+    pub fn rotate_chunks(&mut self, x: i32, y: i32) -> Result<()> {
+        self.chunk_offset.0 += x;
+        self.chunk_offset.1 += y;
 
-        for y in 0..self.chunks.len() {
-            rotate_vec(&mut self.chunks[y], x);
+        let mut chunks_to_generate = Vec::new();
+
+        match y.cmp(&0) {
+            Ordering::Less => {
+                self.chunks.rotate_right(y.abs() as usize);
+
+                for y in 0..y.abs() {
+                    let x = self.chunks[y as usize].len();
+
+                    for x in 0..x {
+                        chunks_to_generate.push((x, y as usize));
+                    }
+                }
+            },
+
+            Ordering::Greater => {
+                self.chunks.rotate_left(y as usize);
+
+                for y in 0..y {
+                    let len = self.chunks[y as usize].len();
+
+                    for x in 0..len {
+                        chunks_to_generate.push((x, (self.chunks.len() as i32 - (y + 1)) as usize));
+                    }
+                }
+            },
+
+            _ => ()
         }
+
+        match x.cmp(&0) {
+            Ordering::Less => {
+                for y in 0..self.chunks.len() {
+                    self.chunks[y].rotate_right(x.abs() as usize);
+
+                    for x in 0..x.abs() {
+                        chunks_to_generate.push((x as usize, y));
+                    }
+                }
+            },
+
+            Ordering::Greater => {
+                for y in 0..self.chunks.len() {
+                    self.chunks[y].rotate_left(x as usize);
+
+                    for x in 0..x {
+                        chunks_to_generate.push(((self.chunks[y].len() as i32 - (x + 1)) as usize, y));
+                    }
+                }
+            },
+
+            _ => ()
+        }
+
+        for (x, y) in chunks_to_generate {
+            self.chunks[y as usize][x as usize].texture.update(self.chunk_size.0 as usize, self.generate_chunk(x as i64, y as i64))?;
+        }
+
+        Ok(())
     }
 
     pub fn chunks(&self) -> &CircularVec<CircularVec<Chunk>> {
@@ -107,7 +167,7 @@ impl World {
     }
 
     fn generate_chunk(&self, x: i64, y: i64) -> Vec<Colour> {
-        self.worldgen.generate(x, y).unwrap().into_iter().flatten().collect()
+        self.worldgen.generate(x + self.chunk_offset.0 as i64, y + self.chunk_offset.1 as i64).unwrap().into_iter().flatten().collect()
     }
 }
 
@@ -141,12 +201,4 @@ fn construct_world(seed: &str, chunk_size: (u32, u32)) -> WorldGen<Colour> {
 
         // Hills
         .add(Tile::new(Colour::new(0, 180, 69, 255)))
-}
-
-fn rotate_vec<T>(vec: &mut CircularVec<T>, value: i32) {
-        match value.cmp(&0) {
-            Ordering::Less => vec.rotate_right(value.abs() as usize),
-            Ordering::Greater => vec.rotate_left(value as usize),
-            _ => ()
-        }
 }
