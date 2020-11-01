@@ -1,15 +1,11 @@
-import init, { Context } from './context.js'
+import init from "./context"
 
-import * as Input from './input.js'
-import * as Menu from './menu.js'
-import * as Tick from './tick.js'
+init.then(async ctx => {
+    interface Module {
+        default: (context: typeof ctx) => void;
+    }
 
-interface Module {
-    default: (context: Context) => void;
-}
-
-init.then((context: Context) => {
-    for(const module of <(Module)[]>[Input, Menu, Tick]) {
-        module.default(context);
+    for(const module of <(Module)[]>[await import("./input"), await import("./menu"), await import("./tick")]) {
+        module.default(ctx);
     }
 })

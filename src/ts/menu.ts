@@ -1,4 +1,4 @@
-import { Context } from './context.js'
+import { Context } from "../../pkg/index.js"
 
 class Menu {
     constructor(container: HTMLElement) {

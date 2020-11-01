@@ -1,4 +1,4 @@
-import { Context } from './context.js'
+import { Context } from "../../pkg/index.js"
 
 function tick(context: Context, time: number) {
     context.tick(time);

@@ -1,4 +1,4 @@
-import { Context, Direction } from './context.js'
+import { Context, Direction } from "../../pkg/index.js"
 
 function has_focus(): boolean {
     return document.activeElement == document.body;
