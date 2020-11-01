@@ -1,8 +1,18 @@
 use crate::{
     webgl::WebGlContext,
     renderer::Renderer,
-    world::World
+    world::World,
+    callback::WorldgenCallback
 };
+
+use std::{
+    sync::Arc,
+    pin::Pin,
+    task::Poll,
+    future::Future,
+};
+
+use futures::poll;
 
 use enumset::{
     EnumSet,
@@ -10,6 +20,7 @@ use enumset::{
 };
 
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 
 #[wasm_bindgen]
 #[derive(EnumSetType)]
@@ -18,6 +29,55 @@ pub enum Direction {
     Down,
     Right,
     Left
+}
+
+#[wasm_bindgen]
+pub struct FutureStore {
+    callback: Arc<WorldgenCallback>,
+    futures: Vec<Pin<Box<dyn Future<Output = JsValue>>>>,
+}
+
+impl FutureStore {
+    pub fn new(callback: WorldgenCallback) -> FutureStore {
+        FutureStore {
+            callback: Arc::new(callback),
+            futures: Vec::new()
+        }
+    }
+
+    async fn update(mut self, num: f64) -> FutureStore {
+        if self.futures.is_empty() {
+            let callback = self.callback.clone();
+
+            let future = async move {
+                callback.does_this_work(num as f64).await
+            };
+
+            self.futures.push(Box::pin(future));
+        }
+
+        {
+            let mut i = 0;
+
+            while i != self.futures.len() {
+                let done = match poll!(&mut self.futures[i]) {
+                    Poll::Ready(value) => {
+                        true
+                    },
+
+                    Poll::Pending => false
+                };
+
+                if done {
+                    self.futures.remove(i);
+                } else {
+                    i += 1;
+                }
+            }
+        }
+
+        self
+    }
 }
 
 #[wasm_bindgen]
@@ -50,6 +110,11 @@ impl Context {
     }
 
     #[wasm_bindgen]
+    pub fn future_store(callback: WorldgenCallback) -> Result<FutureStore, JsValue> {
+        Ok(FutureStore::new(callback))
+    }
+
+    #[wasm_bindgen]
     pub fn resize_viewport(&mut self, width: u32, height: u32) -> Result<(), JsValue> {
         self.renderer.resize_viewport(width, height);
         Ok(self.world.resize(&self.renderer, width, height)?)
@@ -79,7 +144,7 @@ impl Context {
     }
 
     #[wasm_bindgen]
-    pub fn tick(&mut self, time: f32) -> Result<(), JsValue> {
+    pub fn tick(&mut self, futures: FutureStore, time: f32) -> Result<js_sys::Promise, JsValue> {
         let delta = time - self.last_time;
         self.last_time = time;
 
@@ -108,7 +173,10 @@ impl Context {
         }
 
         self.renderer.render(self.world.chunks(), time, self.current_offset);
-        Ok(())
+
+        Ok(future_to_promise(async move {
+           Ok(futures.update(time as f64).await.into())
+        }))
     }
 }
 

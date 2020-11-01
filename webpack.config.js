@@ -1,5 +1,6 @@
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
+const ThreadsPlugin = require("threads-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 const dist = path.resolve(__dirname, "dist");
@@ -20,6 +21,8 @@ module.exports = {
     new CopyPlugin([
       path.resolve(__dirname, "static")
     ]),
+
+    new ThreadsPlugin(),
 
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, '.'),

@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "module": "esnext", // needed to have dynamic imports
+        "moduleResolution": "node",
         "lib": [
             "dom",
             "es2015"
